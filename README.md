@@ -1,1 +1,1 @@
-Update Later
+This is Aiden Chen and Amogh Biradar's Final Project in the Governor's School of Engineering and Technology (GSET) Vibe Coding: AI Remix! Class. It is a wellness app with a multitude of features, including logging emotions, chatbots with varying personas for different moods, and a wellness arcade.

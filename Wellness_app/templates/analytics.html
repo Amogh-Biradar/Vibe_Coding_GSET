@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block page_title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Mood Trends</h5>
+                <p class="text-muted">Visualize how your mood has changed over time.</p>
+                
+                {% if mood_scores %}
+                <canvas id="moodChart" height="250"></canvas>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No mood data available yet. Start tracking your mood to see trends here!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Mood Distribution</h5>
+                <p class="text-muted">See the distribution of your mood ratings.</p>
+                
+                {% if mood_scores %}
+                <canvas id="moodDistributionChart" height="250"></canvas>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No mood data available yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Wellness Insights</h5>
+                
+                {% if mood_scores %}
+                <div id="insights">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-graph-up text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Average Mood</h6>
+                            <p class="mb-0" id="averageMood">Calculating...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-emoji-smile text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Best Day</h6>
+                            <p class="mb-0" id="bestDay">Calculating...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-calendar-check text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Tracking Streak</h6>
+                            <p class="mb-0" id="trackingStreak">Calculating...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-arrow-up-right text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Mood Trend</h6>
+                            <p class="mb-0" id="moodTrend">Calculating...</p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No mood data available yet for insights.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if mood_scores %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prepare data
+        const moodScores = {{ mood_scores|tojson }};
+        const moodDates = {{ mood_dates|tojson }};
+        
+        // Mood Trend Chart
+        const moodCtx = document.getElementById('moodChart').getContext('2d');
+        const moodChart = new Chart(moodCtx, {
+            type: 'line',
+            data: {
+                labels: moodDates,
+                datasets: [{
+                    label: 'Mood Score',
+                    data: moodScores,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        title: {
+                            display: true,
+                            text: 'Mood Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Mood: ${context.parsed.y}/10`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Mood Distribution Chart
+        const distributionCtx = document.getElementById('moodDistributionChart').getContext('2d');
+        
+        // Count frequency of each mood score
+        const moodCounts = Array(10).fill(0);
+        moodScores.forEach(score => {
+            moodCounts[score - 1]++;
+        });
+        
+        const moodLabels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+        
+        const distributionChart = new Chart(distributionCtx, {
+            type: 'bar',
+            data: {
+                labels: moodLabels,
+                datasets: [{
+                    label: 'Frequency',
+                    data: moodCounts,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(255, 205, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(201, 203, 207, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(54, 162, 235, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(255, 205, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(201, 203, 207, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(54, 162, 235, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Frequency'
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Mood Score'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Calculate insights
+        if (moodScores.length > 0) {
+            // Average mood
+            const average = moodScores.reduce((a, b) => a + b, 0) / moodScores.length;
+            document.getElementById('averageMood').textContent = average.toFixed(1) + '/10';
+            
+            // Best day
+            const maxScore = Math.max(...moodScores);
+            const maxIndex = moodScores.indexOf(maxScore);
+            document.getElementById('bestDay').textContent = `${moodDates[maxIndex]} (${maxScore}/10)`;
+            
+            // Tracking streak (simplified)
+            document.getElementById('trackingStreak').textContent = `${moodScores.length} entries`;
+            
+            // Mood trend
+            if (moodScores.length >= 3) {
+                const recentScores = moodScores.slice(-3);
+                const firstScore = recentScores[0];
+                const lastScore = recentScores[recentScores.length - 1];
+                
+                if (lastScore > firstScore) {
+                    document.getElementById('moodTrend').textContent = 'Improving ↗️';
+                } else if (lastScore < firstScore) {
+                    document.getElementById('moodTrend').textContent = 'Declining ↘️';
+                } else {
+                    document.getElementById('moodTrend').textContent = 'Stable →';
+                }
+            } else {
+                document.getElementById('moodTrend').textContent = 'Need more data';
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %} 

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block page_title %}Journal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-7">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Write a Journal Entry</h5>
+                <p class="text-muted">Express your thoughts, feelings, and experiences. Regular journaling can help improve mental clarity and emotional well-being.</p>
+                
+                <form method="POST" action="{{ url_for('journal') }}">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="content" name="content" rows="10" placeholder="What's on your mind today?" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Save Entry</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Journal Prompts</h5>
+                <p class="text-muted">Need inspiration? Try one of these prompts:</p>
+                
+                <div class="list-group">
+                    <button type="button" class="list-group-item list-group-item-action prompt-item">
+                        What are three things you're grateful for today?
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action prompt-item">
+                        Describe a challenge you're facing and how you might overcome it.
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action prompt-item">
+                        What made you smile today?
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action prompt-item">
+                        What are you looking forward to this week?
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action prompt-item">
+                        Describe your ideal day. What would it look like?
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Previous Entries</h5>
+                
+                {% if entries %}
+                <div class="accordion" id="journalAccordion">
+                    {% for entry in entries %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ entry.id }}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ entry.id }}" aria-expanded="false" aria-controls="collapse{{ entry.id }}">
+                                {{ entry.timestamp.strftime('%B %d, %Y at %H:%M') }}
+                            </button>
+                        </h2>
+                        <div id="collapse{{ entry.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ entry.id }}" data-bs-parent="#journalAccordion">
+                            <div class="accordion-body">
+                                <p>{{ entry.content|nl2br }}</p>
+                                <div class="text-muted small">Written {{ entry.timestamp.strftime('%B %d, %Y at %H:%M') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No journal entries yet. Start writing!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const promptItems = document.querySelectorAll('.prompt-item');
+        const journalContent = document.getElementById('content');
+        
+        promptItems.forEach(item => {
+            item.addEventListener('click', function() {
+                journalContent.value = this.textContent.trim() + '\n\n';
+                journalContent.focus();
+            });
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block page_title %}Mood Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">How are you feeling today?</h5>
+                <form method="POST" action="{{ url_for('mood_tracker') }}">
+                    <div class="mb-4">
+                        <label class="form-label">Select your mood (1-10)</label>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Low</span>
+                            <span class="text-muted">High</span>
+                        </div>
+                        <input type="range" class="form-range" min="1" max="10" step="1" id="mood_score" name="mood_score" value="5">
+                        <div class="d-flex justify-content-between">
+                            <span>😔</span>
+                            <span>😐</span>
+                            <span>😊</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span id="mood_value" class="badge bg-primary">5</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="What's making you feel this way?"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Entry</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Recent Mood History</h5>
+                {% if entries %}
+                <div class="list-group">
+                    {% for entry in entries %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                {% if entry.mood_score <= 3 %}
+                                <span class="text-danger">😔 Low Mood ({{ entry.mood_score }}/10)</span>
+                                {% elif entry.mood_score <= 7 %}
+                                <span class="text-warning">😐 Neutral Mood ({{ entry.mood_score }}/10)</span>
+                                {% else %}
+                                <span class="text-success">😊 Good Mood ({{ entry.mood_score }}/10)</span>
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">{{ entry.timestamp.strftime('%b %d, %Y at %H:%M') }}</small>
+                        </div>
+                        {% if entry.notes %}
+                        <p class="mb-1">{{ entry.notes }}</p>
+                        {% else %}
+                        <p class="text-muted mb-1"><small>No notes added</small></p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No mood entries yet. Start tracking your mood!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const moodSlider = document.getElementById('mood_score');
+        const moodValue = document.getElementById('mood_value');
+        
+        moodSlider.addEventListener('input', function() {
+            moodValue.textContent = this.value;
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">How are you feeling today?</h5>
+                <p class="card-text">Track your mood to gain insights into your emotional patterns.</p>
+                <a href="{{ url_for('mood_tracker') }}" class="btn btn-primary">Record Mood</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Journal Your Thoughts</h5>
+                <p class="card-text">Express yourself freely and reflect on your day.</p>
+                <a href="{{ url_for('journal') }}" class="btn btn-success">Write Journal</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Chat with Your Wellness Assistant</h5>
+                <p class="card-text">Get personalized support and guidance from our AI companion.</p>
+                <a href="{{ url_for('chat') }}" class="btn btn-info text-white">Start Chat</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">View Your Progress</h5>
+                <p class="card-text">Analyze your wellness journey with detailed insights and trends.</p>
+                <a href="{{ url_for('analytics') }}" class="btn btn-secondary">View Analytics</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Wellness Tips</h5>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">Mindfulness</h6>
+                                <p class="card-text">Take 5 minutes to focus on your breathing. Notice the sensation of each breath.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">Physical Wellness</h6>
+                                <p class="card-text">Try to stand up and stretch for a few minutes every hour if you're sitting for long periods.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">Emotional Health</h6>
+                                <p class="card-text">Acknowledge your feelings without judgment. All emotions are valid and temporary.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

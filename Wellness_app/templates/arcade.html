@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block page_title %}Wellness Arcade{% endblock %}
+
+{% block content %}
+<div class="arcade-container">
+    <div class="arcade-header mb-4">
+        <h2 class="mb-2">Welcome to the Wellness Arcade!</h2>
+        <p class="text-muted">Play games to relax and recharge. Choose a game below:</p>
+        <div class="arcade-game-select mb-4">
+            <button class="btn btn-primary arcade-game-btn me-2" id="pongBtn"><i class="bi bi-joystick"></i> Pong</button>
+            <button class="btn btn-primary arcade-game-btn" id="battleshipBtn"><i class="bi bi-grid-3x3-gap"></i> Battleship</button>
+        </div>
+    </div>
+    <div id="arcadeGameArea">
+        <!-- Game canvas or UI will be injected here -->
+    </div>
+    <div id="arcadeGeminiMsg" class="mt-4"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const pongBtn = document.getElementById('pongBtn');
+const battleshipBtn = document.getElementById('battleshipBtn');
+const gameArea = document.getElementById('arcadeGameArea');
+const geminiMsg = document.getElementById('arcadeGeminiMsg');
+
+function clearGameArea() {
+    gameArea.innerHTML = '';
+    geminiMsg.innerHTML = '';
+}
+
+pongBtn.onclick = function() {
+    clearGameArea();
+    loadPong();
+};
+battleshipBtn.onclick = function() {
+    clearGameArea();
+    loadBattleship();
+};
+
+// --- Pong Implementation ---
+function loadPong() {
+    gameArea.innerHTML = `<div style='position:relative;'>
+        <canvas id='pongCanvas' width='600' height='400' style='background:#222;display:block;margin:0 auto;border-radius:12px;'></canvas>
+        <div class='text-center text-muted mt-2'>W/A: Left Paddle | Up/Down: Right Paddle</div>
+        <div class='text-center mt-2'><span id='pongScore'></span></div>
+        <div id='pongOverlay' style='display:none;position:absolute;top:0;left:0;width:600px;height:400px;background:rgba(0,0,0,0.7);color:#fff;z-index:10;align-items:center;justify-content:center;flex-direction:column;text-align:center;border-radius:12px;'></div>
+    </div>`;
+    let canvas = document.getElementById('pongCanvas');
+    let ctx = canvas.getContext('2d');
+    let leftY = 150, rightY = 150, paddleH = 80, paddleW = 12;
+    let ballX = 300, ballY = 200, ballDX = 4, ballDY = 2, ballR = 10;
+    let leftScore = 0, rightScore = 0;
+    let upPressed = false, downPressed = false, wPressed = false, aPressed = false;
+    let paused = false;
+    let overlay = document.getElementById('pongOverlay');
+
+    function draw() {
+        ctx.clearRect(0,0,600,400);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(20, leftY, paddleW, paddleH);
+        ctx.fillRect(600-20-paddleW, rightY, paddleW, paddleH);
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballR, 0, Math.PI*2);
+        ctx.fill();
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(300, 0);
+        ctx.lineTo(300, 400);
+        ctx.strokeStyle = '#444';
+        ctx.stroke();
+        ctx.setLineDash([]);
+        document.getElementById('pongScore').textContent = `Left: ${leftScore} | Right: ${rightScore}`;
+    }
+    function move() {
+        if (paused) return;
+        if (wPressed && leftY > 0) leftY -= 6;
+        if (aPressed && leftY < 400-paddleH) leftY += 6;
+        if (upPressed && rightY > 0) rightY -= 6;
+        if (downPressed && rightY < 400-paddleH) rightY += 6;
+        ballX += ballDX; ballY += ballDY;
+        if (ballY-ballR < 0 || ballY+ballR > 400) ballDY = -ballDY;
+        if (ballX-ballR < 32 && ballY > leftY && ballY < leftY+paddleH) ballDX = -ballDX;
+        if (ballX+ballR > 600-32 && ballY > rightY && ballY < rightY+paddleH) ballDX = -ballDX;
+        if (ballX-ballR < 0) { rightScore++; showPongOverlay('right'); }
+        if (ballX+ballR > 600) { leftScore++; showPongOverlay('left'); }
+    }
+    function loop() { move(); draw(); requestAnimationFrame(loop); }
+    loop();
+    document.onkeydown = function(e) {
+        if (e.key === 'w' || e.key === 'W') wPressed = true;
+        if (e.key === 'a' || e.key === 'A') aPressed = true;
+        if (e.key === 'ArrowUp') upPressed = true;
+        if (e.key === 'ArrowDown') downPressed = true;
+    };
+    document.onkeyup = function(e) {
+        if (e.key === 'w' || e.key === 'W') wPressed = false;
+        if (e.key === 'a' || e.key === 'A') aPressed = false;
+        if (e.key === 'ArrowUp') upPressed = false;
+        if (e.key === 'ArrowDown') downPressed = false;
+    };
+    function showPongOverlay(winner) {
+        paused = true;
+        fetch('/api/arcade_gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ game: 'pong', winner: winner })
+        })
+        .then(r => r.json())
+        .then(data => {
+            overlay.innerHTML = `<div style='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;'><div class='mb-3'>${data.message}</div><button class='btn btn-primary' id='pongContinueBtn'>Continue</button></div>`;
+            overlay.style.display = 'flex';
+            document.getElementById('pongContinueBtn').onclick = function() {
+                overlay.style.display = 'none';
+                paused = false;
+                ballX=300; ballY=200; ballDX = (winner==='left'?-4:4); ballDY=2;
+            };
+        });
+    }
+}
+// --- Battleship Implementation ---
+function loadBattleship() {
+    const size = 6;
+    const totalShips = 4;
+    let playerBoard = Array(size).fill().map(()=>Array(size).fill(0));
+    let aiBoard = Array(size).fill().map(()=>Array(size).fill(0));
+    let playerHits = 0, aiHits = 0;
+    let playerTurn = true;
+    let gameOver = false;
+    let aiMoves = [];
+    let placing = true;
+    let placed = 0;
+    // Place AI ships randomly
+    function placeShips(board) {
+        let placed = 0;
+        while (placed < totalShips) {
+            let x = Math.floor(Math.random()*size), y = Math.floor(Math.random()*size);
+            if (board[y][x] === 0) { board[y][x] = 1; placed++; }
+        }
+    }
+    placeShips(aiBoard);
+    aiMoves = [];
+    for (let y=0; y<size; y++) for (let x=0; x<size; x++) aiMoves.push([x,y]);
+    // Render boards
+    function render() {
+        let html = `<div class='row justify-content-center'><div class='col-auto'><h5>Your Board</h5><table class='battleship-board' id='playerBoard'>`;
+        for (let y=0; y<size; y++) {
+            html += '<tr>';
+            for (let x=0; x<size; x++) {
+                let cell = playerBoard[y][x];
+                let c = cell===2?'hit':cell===3?'miss':cell===1?'ship':'';
+                let clickable = placing && cell===0 ? "data-x='"+x+"' data-y='"+y+"' style='cursor:pointer;'" : '';
+                html += `<td class='${c}' ${clickable}></td>`;
+            }
+            html += '</tr>';
+        }
+        html += `</table></div><div class='col-auto'><h5>Enemy Board</h5><table class='battleship-board' id='aiBoard'>`;
+        for (let y=0; y<size; y++) {
+            html += '<tr>';
+            for (let x=0; x<size; x++) {
+                let cell = aiBoard[y][x];
+                let c = cell===2?'hit':cell===3?'miss':'';
+                let clickable = (!placing && playerTurn && cell!==2 && cell!==3) ? "data-x='"+x+"' data-y='"+y+"' style='cursor:pointer;'" : '';
+                html += `<td class='${c}' ${clickable}></td>`;
+            }
+            html += '</tr>';
+        }
+        html += `</table></div></div>`;
+        html += `<div class='text-center mt-3'><span id='battleshipStatus'></span></div>`;
+        gameArea.innerHTML = html;
+        if (placing) {
+            document.getElementById('battleshipStatus').textContent = `Place your ships: ${placed}/${totalShips}`;
+            document.querySelectorAll('#playerBoard td').forEach(td => {
+                td.onclick = function() {
+                    let x = +this.getAttribute('data-x'), y = +this.getAttribute('data-y');
+                    if (playerBoard[y][x] === 0 && placed < totalShips) {
+                        playerBoard[y][x] = 1; placed++;
+                        render();
+                        if (placed === totalShips) {
+                            placing = false;
+                            render();
+                        }
+                    }
+                };
+            });
+        } else {
+            document.getElementById('battleshipStatus').textContent = gameOver ? '' : (playerTurn ? "Your turn: Click a cell on the enemy board." : "AI's turn...");
+            if (playerTurn && !gameOver) {
+                document.querySelectorAll('#aiBoard td').forEach(td => {
+                    td.onclick = function() {
+                        let x = +this.getAttribute('data-x'), y = +this.getAttribute('data-y');
+                        if (aiBoard[y][x]===2 || aiBoard[y][x]===3) return;
+                        if (aiBoard[y][x]===1) { aiBoard[y][x]=2; playerHits++; } else { aiBoard[y][x]=3; }
+                        playerTurn = false;
+                        checkWin();
+                        render();
+                        if (!gameOver) setTimeout(aiMove, 700);
+                    };
+                });
+            }
+        }
+    }
+    function aiMove() {
+        if (gameOver) return;
+        let idx = Math.floor(Math.random()*aiMoves.length);
+        let [x,y] = aiMoves.splice(idx,1)[0];
+        if (playerBoard[y][x]===1) { playerBoard[y][x]=2; aiHits++; } else { playerBoard[y][x]=3; }
+        playerTurn = true;
+        checkWin();
+        render();
+    }
+    function checkWin() {
+        if (playerHits>=totalShips) {
+            gameOver = true;
+            showBattleshipOverlay('win');
+        } else if (aiHits>=totalShips) {
+            gameOver = true;
+            showBattleshipOverlay('lose');
+        }
+    }
+    function showBattleshipOverlay(result) {
+        fetch('/api/arcade_gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ game: 'battleship', winner: result })
+        })
+        .then(r => r.json())
+        .then(data => {
+            let overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100vw';
+            overlay.style.height = '100vh';
+            overlay.style.background = 'rgba(0,0,0,0.7)';
+            overlay.style.color = '#fff';
+            overlay.style.zIndex = '1000';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.flexDirection = 'column';
+            overlay.innerHTML = `<div class='mb-3'>${data.message}</div><button class='btn btn-primary' id='battleshipRestartBtn'>Restart</button>`;
+            document.body.appendChild(overlay);
+            document.getElementById('battleshipRestartBtn').onclick = function() {
+                document.body.removeChild(overlay);
+                loadBattleship();
+            };
+        });
+    }
+    render();
+}
+</script>
+{% endblock %} 
